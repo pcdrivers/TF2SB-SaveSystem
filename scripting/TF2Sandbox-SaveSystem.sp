@@ -66,7 +66,7 @@ public void OnPluginStart()
 
 public Action Command_LoadDataFromDatabase(int client, int args)
 {
-	if(IsValidClient(client))
+	if(Build_IsClientValid(client, client))
 	{
 		if(iCoolDown[client] != 0)
 		{
@@ -519,77 +519,80 @@ void LoadDataSteamID(int loader, char[] SteamID64, int slot)  // Load Data from 
 
 void LoadFunction(int loader, int slot, char[] cFileName)
 {
-	if(g_hFileEditting[loader] == INVALID_HANDLE)
+	if(DataFileExist(loader, slot))
 	{
-		g_hFileEditting[loader] = OpenFile(cFileName, "r");
-		
-		float fOrigin[3], fAngles[3];
-		char szModel[128], szClass[64], szBuffer[10][255];
-		int g_iCountEntity = 0;
-		int g_iCountLoop = 0;
-		int Obj_LoadEntity = -1; 
-		
-		char szLoadString[255];
-		for(int i = 1; i < MAX_HOOK_ENTITIES; i++)
+		if(g_hFileEditting[loader] == INVALID_HANDLE)
 		{
-			if (ReadFileLine(g_hFileEditting[loader], szLoadString, sizeof(szLoadString))) 
+			g_hFileEditting[loader] = OpenFile(cFileName, "r");
+			
+			float fOrigin[3], fAngles[3];
+			char szModel[128], szClass[64], szBuffer[10][255];
+			int g_iCountEntity = 0;
+			int g_iCountLoop = 0;
+			int Obj_LoadEntity = -1; 
+			
+			char szLoadString[255];
+			for(int i = 1; i < MAX_HOOK_ENTITIES; i++)
 			{
-				if (StrContains(szLoadString, "ent") != -1 && StrContains(szLoadString, ";") == -1) //Map name have ent sytax??? Holy
+				if (ReadFileLine(g_hFileEditting[loader], szLoadString, sizeof(szLoadString))) 
 				{
-					ExplodeString(szLoadString, " ", szBuffer, 10, 255);
-					Format(szClass, sizeof(szClass), "%s", szBuffer[1]);
-					Format(szModel, sizeof(szModel), "%s", szBuffer[2]);
-					fOrigin[0] = StringToFloat(szBuffer[3]);
-					fOrigin[1] = StringToFloat(szBuffer[4]);
-					fOrigin[2] = StringToFloat(szBuffer[5]);
-					fAngles[0] = StringToFloat(szBuffer[6]);
-					fAngles[1] = StringToFloat(szBuffer[7]);
-					fAngles[2] = StringToFloat(szBuffer[8]);
-					//iHealth = StringToInt(szBuffer[9]);
-					//if (iHealth == 2)
-					//	iHealth = 999999999;
-					//if (iHealth == 1)
-					//	iHealth = 50;
-					if (StrContains(szClass, "prop_dynamic") >= 0) {
-						Obj_LoadEntity = CreateEntityByName("prop_dynamic_override");
-						SetEntProp(Obj_LoadEntity, Prop_Send, "m_nSolidType", 6);
-						SetEntProp(Obj_LoadEntity, Prop_Data, "m_nSolidType", 6);
-					} else if (StrEqual(szClass, "prop_physics"))
-						Obj_LoadEntity = CreateEntityByName("prop_physics_override");
-					else if (StrContains(szClass, "prop_physics") >= 0)
-						Obj_LoadEntity = CreateEntityByName(szClass);
-					
-					if (Obj_LoadEntity != -1) 
+					if (StrContains(szLoadString, "ent") != -1 && StrContains(szLoadString, ";") == -1) //Map name have ent sytax??? Holy
 					{
-						if (Build_RegisterEntityOwner(Obj_LoadEntity, loader)) 
+						ExplodeString(szLoadString, " ", szBuffer, 10, 255);
+						Format(szClass, sizeof(szClass), "%s", szBuffer[1]);
+						Format(szModel, sizeof(szModel), "%s", szBuffer[2]);
+						fOrigin[0] = StringToFloat(szBuffer[3]);
+						fOrigin[1] = StringToFloat(szBuffer[4]);
+						fOrigin[2] = StringToFloat(szBuffer[5]);
+						fAngles[0] = StringToFloat(szBuffer[6]);
+						fAngles[1] = StringToFloat(szBuffer[7]);
+						fAngles[2] = StringToFloat(szBuffer[8]);
+						//iHealth = StringToInt(szBuffer[9]);
+						//if (iHealth == 2)
+						//	iHealth = 999999999;
+						//if (iHealth == 1)
+						//	iHealth = 50;
+						if (StrContains(szClass, "prop_dynamic") >= 0) {
+							Obj_LoadEntity = CreateEntityByName("prop_dynamic_override");
+							SetEntProp(Obj_LoadEntity, Prop_Send, "m_nSolidType", 6);
+							SetEntProp(Obj_LoadEntity, Prop_Data, "m_nSolidType", 6);
+						} else if (StrEqual(szClass, "prop_physics"))
+							Obj_LoadEntity = CreateEntityByName("prop_physics_override");
+						else if (StrContains(szClass, "prop_physics") >= 0)
+							Obj_LoadEntity = CreateEntityByName(szClass);
+						
+						if (Obj_LoadEntity != -1) 
 						{
-							if (!IsModelPrecached(szModel))
-								PrecacheModel(szModel);
-							DispatchKeyValue(Obj_LoadEntity, "model", szModel);
-							TeleportEntity(Obj_LoadEntity, fOrigin, fAngles, NULL_VECTOR);
-							DispatchSpawn(Obj_LoadEntity);
-							//SetVariantInt(iHealth);
-							//AcceptEntityInput(Obj_LoadEntity, "sethealth", -1);
-							//AcceptEntityInput(Obj_LoadEntity, "disablemotion", -1);
-							g_iCountEntity++;
-						} 
-						else 
-						{
-							RemoveEdict(Obj_LoadEntity);
+							if (Build_RegisterEntityOwner(Obj_LoadEntity, loader)) 
+							{
+								if (!IsModelPrecached(szModel))
+									PrecacheModel(szModel);
+								DispatchKeyValue(Obj_LoadEntity, "model", szModel);
+								TeleportEntity(Obj_LoadEntity, fOrigin, fAngles, NULL_VECTOR);
+								DispatchSpawn(Obj_LoadEntity);
+								//SetVariantInt(iHealth);
+								//AcceptEntityInput(Obj_LoadEntity, "sethealth", -1);
+								//AcceptEntityInput(Obj_LoadEntity, "disablemotion", -1);
+								g_iCountEntity++;
+							} 
+							else 
+							{
+								RemoveEdict(Obj_LoadEntity);
+							}
 						}
+						g_iCountLoop++;
 					}
-					g_iCountLoop++;
-				}
-				if(IsEndOfFile(g_hFileEditting[loader]))
-				{
-					break;
+					if(IsEndOfFile(g_hFileEditting[loader]))
+					{
+						break;
+					}
 				}
 			}
+			int g_iErrorEntity = g_iCountLoop -g_iCountEntity;
+			Build_PrintToChat(loader, "Load Result >> Loaded: %i, Error: %i >> Loaded Slot%i", g_iCountEntity, g_iErrorEntity, slot);
+			CloseHandle(g_hFileEditting[loader]);
+			g_hFileEditting[loader] = INVALID_HANDLE;
 		}
-		int g_iErrorEntity = g_iCountLoop -g_iCountEntity;
-		Build_PrintToChat(loader, "Load Result >> Loaded: %i, Error: %i >> Loaded Slot%i", g_iCountEntity, g_iErrorEntity, slot);
-		CloseHandle(g_hFileEditting[loader]);
-		g_hFileEditting[loader] = INVALID_HANDLE;
 	}
 }
 
@@ -603,15 +606,16 @@ void SaveData(int client, int slot)  // Save Data from data file
 	char cFileName[255];
 	BuildPath(Path_SM, cFileName, sizeof(cFileName), "data/TF2SBSaveSystem/%s&%s@%i.tf2sb", CurrentMap, SteamID64, slot);
 	
+	int g_iCountEntity = -1;
 	if(g_hFileEditting[client] == INVALID_HANDLE)
 	{
+		g_iCountEntity = 0;
 		//----------------------------------------------------Open file and start write--------------------------------------------------------------
 		g_hFileEditting[client] = OpenFile(cFileName, "w");
 		
 		float fOrigin[3], fAngles[3];
 		char szModel[64], szClass[64];
 		int iOrigin[3], iAngles[3];
-		int g_iCountEntity = 0;
 		
 		char szTime[64];
 		FormatTime(szTime, sizeof(szTime), "%Y/%m/%d");
@@ -621,7 +625,7 @@ void SaveData(int client, int slot)  // Save Data from data file
 		WriteFileLine(g_hFileEditting[client], ";--- Saved on : %s", szTime);
 		for (int i = 0; i < MAX_HOOK_ENTITIES; i++) 
 		{
-			if (IsValidEntity(i) && !IsValidClient(i))
+			if (IsValidEdict(i))
 			{
 				GetEdictClassname(i, szClass, sizeof(szClass));
 				if ((StrContains(szClass, "prop_dynamic") >= 0 || StrContains(szClass, "prop_physics") >= 0) && !StrEqual(szClass, "prop_ragdoll") && Build_ReturnEntityOwner(i) == client) 
@@ -653,15 +657,21 @@ void SaveData(int client, int slot)  // Save Data from data file
 		
 		FlushFile(g_hFileEditting[client]);
 		//-------------------------------------------------------------Close file-------------------------------------------------------------------
-		
-		if(DataFileExist(client, slot))
-			Build_PrintToChat(client, "Save Result >> Saved: %i, Error: 0 >> Saved in Slot%i", g_iCountEntity, slot);
-		else
-			Build_PrintToChat(client, "Save Result >> Saved: 0, Error: %i >> Error in Slot%i, please contact server admin.", g_iCountEntity, slot);
-			
 		CloseHandle(g_hFileEditting[client]);
 		g_hFileEditting[client] = INVALID_HANDLE;
+		
+		if(DataFileExist(client, slot) && g_iCountEntity == 0)
+		{
+			Build_PrintToChat(client, "Save Result >> ERROR!!!. You didnt build anything, please build something and save again.");
+			DeleteFile(cFileName);
+		}
+		else
+		{
+			Build_PrintToChat(client, "Save Result >> Saved: %i, Error: 0 >> Saved in Slot%i", g_iCountEntity, slot);
+		}
 	}
+	if(g_iCountEntity == -1)
+		Build_PrintToChat(client, "Save Result >> ERROR!!! >> Error in Slot%i, please contact server admin.", slot);
 }
 
 
@@ -688,27 +698,30 @@ void GetDataDate(int client, int slot, char[] data, int maxlength) //Get the dat
 {
 	char cFileName[255];
 	GetBuildPath(client, slot, cFileName);	
-
-	if(g_hFileEditting[client] == INVALID_HANDLE)
+	
+	if(DataFileExist(client, slot))
 	{
-		char cDate[11], szBuffer[6][255];
-		char szLoadString[255];
-		g_hFileEditting[client] = OpenFile(cFileName, "r");
-		for(int i = 1; i < MAX_HOOK_ENTITIES; i++)
+		if(g_hFileEditting[client] == INVALID_HANDLE)
 		{
-			if (ReadFileLine(g_hFileEditting[client], szLoadString, sizeof(szLoadString))) 
+			char cDate[11], szBuffer[6][255];
+			char szLoadString[255];
+			g_hFileEditting[client] = OpenFile(cFileName, "r");
+			for(int i = 1; i < MAX_HOOK_ENTITIES; i++)
 			{
-				if (StrContains(szLoadString, "Saved on :") != -1)
+				if (ReadFileLine(g_hFileEditting[client], szLoadString, sizeof(szLoadString))) 
 				{
-					ExplodeString(szLoadString, " ", szBuffer, 6, 255);
-					Format(cDate, sizeof(cDate), "%s", szBuffer[4]);
-					strcopy(data, maxlength, cDate);
-					break;
+					if (StrContains(szLoadString, "Saved on :") != -1)
+					{
+						ExplodeString(szLoadString, " ", szBuffer, 6, 255);
+						Format(cDate, sizeof(cDate), "%s", szBuffer[4]);
+						strcopy(data, maxlength, cDate);
+						break;
+					}
 				}
 			}
+			CloseHandle(g_hFileEditting[client]);
+			g_hFileEditting[client] = INVALID_HANDLE;
 		}
-		CloseHandle(g_hFileEditting[client]);
-		g_hFileEditting[client] = INVALID_HANDLE;
 	}
 }
 
@@ -717,28 +730,31 @@ int GetDataProps(int client, int slot) //Get how many props inside data file
 	char cFileName[255];
 	GetBuildPath(client, slot, cFileName);		
 
-	if(g_hFileEditting[client] == INVALID_HANDLE)
+	if(DataFileExist(client, slot))
 	{
-		int iProps;
-		char szBuffer[9][255];
-		char szLoadString[255];
-		g_hFileEditting[client] = OpenFile(cFileName, "r");
-		for(int i = 1; i < MAX_HOOK_ENTITIES; i++)
+		if(g_hFileEditting[client] == INVALID_HANDLE)
 		{
-			if (ReadFileLine(g_hFileEditting[client], szLoadString, sizeof(szLoadString))) 
+			int iProps;
+			char szBuffer[9][255];
+			char szLoadString[255];
+			g_hFileEditting[client] = OpenFile(cFileName, "r");
+			for(int i = 1; i < MAX_HOOK_ENTITIES; i++)
 			{
-				if (StrContains(szLoadString, "Data File End |") != -1)
+				if (ReadFileLine(g_hFileEditting[client], szLoadString, sizeof(szLoadString))) 
 				{
-					ExplodeString(szLoadString, " ", szBuffer, 9, 255);
-					
-					iProps = StringToInt(szBuffer[5]);
-					break;
+					if (StrContains(szLoadString, "Data File End |") != -1)
+					{
+						ExplodeString(szLoadString, " ", szBuffer, 9, 255);
+						
+						iProps = StringToInt(szBuffer[5]);
+						break;
+					}
 				}
 			}
+			CloseHandle(g_hFileEditting[client]);
+			g_hFileEditting[client] = INVALID_HANDLE;
+			return iProps;
 		}
-		CloseHandle(g_hFileEditting[client]);
-		g_hFileEditting[client] = INVALID_HANDLE;
-		return iProps;
 	}
 	return -1;
 }
@@ -767,11 +783,3 @@ bool DataFileExist(int client, int slot) //Is the data file exist? true : false
  	}
  	return false;
 } 
-
-stock bool IsValidClient(int client) //Check is good client, not dump client
-{ 
-    if(client <= 0 ) return false; 
-    if(client > MaxClients) return false; 
-    if(!IsClientConnected(client)) return false; 
-    return IsClientInGame(client); 
-}
