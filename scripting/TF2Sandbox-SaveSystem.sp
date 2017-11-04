@@ -552,11 +552,13 @@ void LoadFunction(int loader, int slot, char[] cFileName)
 						//	iHealth = 999999999;
 						//if (iHealth == 1)
 						//	iHealth = 50;
-						if (StrContains(szClass, "prop_dynamic") >= 0) {
+						if (StrContains(szClass, "prop_dynamic") >= 0) 
+						{
 							Obj_LoadEntity = CreateEntityByName("prop_dynamic_override");
 							SetEntProp(Obj_LoadEntity, Prop_Send, "m_nSolidType", 6);
 							SetEntProp(Obj_LoadEntity, Prop_Data, "m_nSolidType", 6);
-						} else if (StrEqual(szClass, "prop_physics"))
+						} 
+						else if (StrEqual(szClass, "prop_physics"))
 							Obj_LoadEntity = CreateEntityByName("prop_physics_override");
 						else if (StrContains(szClass, "prop_physics") >= 0)
 							Obj_LoadEntity = CreateEntityByName(szClass);
@@ -567,6 +569,7 @@ void LoadFunction(int loader, int slot, char[] cFileName)
 							{
 								if (!IsModelPrecached(szModel))
 									PrecacheModel(szModel);
+			
 								DispatchKeyValue(Obj_LoadEntity, "model", szModel);
 								TeleportEntity(Obj_LoadEntity, fOrigin, fAngles, NULL_VECTOR);
 								DispatchSpawn(Obj_LoadEntity);
@@ -574,6 +577,37 @@ void LoadFunction(int loader, int slot, char[] cFileName)
 								//AcceptEntityInput(Obj_LoadEntity, "sethealth", -1);
 								//AcceptEntityInput(Obj_LoadEntity, "disablemotion", -1);
 								g_iCountEntity++;
+								
+								//light bulb
+								if(StrEqual(szModel, "models/props_2fort/lightbulb001.mdl"))
+								{
+									int Obj_LightDynamic = CreateEntityByName("light_dynamic");
+									
+									char szColor[32];
+									Format(szColor, sizeof(szColor), "255 255 255");
+									
+									SetVariantString("500");
+									AcceptEntityInput(Obj_LightDynamic, "distance", -1);
+									SetVariantString("7");
+									AcceptEntityInput(Obj_LightDynamic, "brightness", -1);
+									SetVariantString("2");
+									AcceptEntityInput(Obj_LightDynamic, "style", -1);
+									SetVariantString(szColor);
+									AcceptEntityInput(Obj_LightDynamic, "color", -1);
+									
+									if (Obj_LightDynamic != -1) 
+									{
+										DispatchSpawn(Obj_LightDynamic);
+										TeleportEntity(Obj_LightDynamic, fOrigin, fAngles, NULL_VECTOR);
+										
+										char szNameMelon[64];
+										Format(szNameMelon, sizeof(szNameMelon), "Obj_LoadEntity%i", GetRandomInt(1000, 5000));
+										DispatchKeyValue(Obj_LoadEntity, "targetname", szNameMelon);
+										SetVariantString(szNameMelon);
+										AcceptEntityInput(Obj_LightDynamic, "setparent", -1);
+										AcceptEntityInput(Obj_LightDynamic, "turnon", loader, loader);
+									}	
+								}
 							} 
 							else 
 							{
@@ -762,7 +796,7 @@ int GetDataProps(int client, int slot) //Get how many props inside data file
 void GetBuildPath(int client, int slot, char[] cFileNameout) //Get the sourcemod Build path
 {
 	char SteamID64[64];
-	GetClientAuthId(client, AuthId_SteamID64, SteamID64, sizeof(SteamID64), true);
+	GetClientAuthId( client, AuthId_SteamID64, SteamID64, sizeof(SteamID64), true);
 	
 	char cFileName[255];
 	BuildPath(Path_SM, cFileName, sizeof(cFileName), "data/TF2SBSaveSystem/%s&%s@%i.tf2sb", CurrentMap, SteamID64, slot);
