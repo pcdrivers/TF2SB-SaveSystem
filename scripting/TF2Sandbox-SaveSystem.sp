@@ -790,7 +790,8 @@ void LoadData(int loader, int client, int slot)  // Load Data from data file (lo
 	char cFileName[255];
 	GetBuildPath(client, slot, cFileName);
 		
-	LoadFunction(loader, slot, cFileName);
+	if(DataFileExistChar(cFileName))
+		LoadFunction(loader, slot, cFileName);
 }
 
 void LoadDataSteamID(int loader, char[] SteamID64, int slot)  // Load Data from data file (loader, client steamid64 in data file, slot number)
@@ -798,12 +799,13 @@ void LoadDataSteamID(int loader, char[] SteamID64, int slot)  // Load Data from 
 	char cFileName[255];
 	BuildPath(Path_SM, cFileName, sizeof(cFileName), "data/TF2SBSaveSystem/%s&%s@%i.tf2sb", CurrentMap, SteamID64, slot);
 	
-	LoadFunction(loader, slot, cFileName);
+	if(DataFileExistChar(cFileName))
+		LoadFunction(loader, slot, cFileName);
 }
 
-void LoadFunction(int loader, int slot, char[] cFileName)
+void LoadFunction(int loader, int slot, char cFileName[255])
 {
-	if(DataFileExist(loader, slot))
+	if(DataFileExistChar(cFileName))
 	{
 		if(g_hFileEditting[loader] == INVALID_HANDLE)
 		{
@@ -1114,6 +1116,15 @@ bool DataFileExist(int client, int slot) //Is the data file exist? true : false
 	char cFileName[255];
 	GetBuildPath(client, slot, cFileName);
 	
+ 	if(FileExists(cFileName))
+ 	{
+ 		return true;
+ 	}
+ 	return false;
+} 
+
+bool DataFileExistChar(char cFileName[255]) //Is the data file exist? true : false 
+{
  	if(FileExists(cFileName))
  	{
  		return true;
